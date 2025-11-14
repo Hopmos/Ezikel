@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hopmos Super Friday Drop</title>
+    <meta name="theme-color" content="#8B1AFF">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&display=swap');
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Poppins',sans-serif; }
+        body { background:linear-gradient(135deg,#8B1AFF,#FF5E62); color:white; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:15px; overflow-x:hidden; }
+        .card { background:rgba(255,255,255,0.15); backdrop-filter:blur(16px); border-radius:24px; padding:30px 20px; max-width:380px; width:100%; box-shadow:0 15px 40px rgba(0,0,0,0.3); text-align:center; }
+        h1 { font-size:clamp(28px, 8vw, 36px); background:linear-gradient(90deg,#FFD700,#FF4500); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:6px; }
+        .tagline { font-size:clamp(14px, 4vw, 18px); margin:8px 0 20px; opacity:0.9; }
+        .battery { width:100%; max-width:300px; height:140px; margin:25px auto; border:10px solid white; border-radius:28px; position:relative; background:rgba(255,255,255,0.2); overflow:hidden; }
+        .battery::after { content:''; position:absolute; right:-30px; top:35px; width:30px; height:70px; background:white; border-radius:10px; }
+        .fill { height:100%; width:0%; background:#fff; border-radius:16px; transition:width 1.6s cubic-bezier(0.4,0,0.2,1); }
+        .percent { font-size:clamp(60px, 15vw, 100px); font-weight:900; margin:15px 0 -10px; text-shadow:0 4px 15px rgba(0,0,0,0.4); }
+        .msg { font-size:clamp(18px, 5vw, 24px); min-height:70px; line-height:1.4; margin:20px 0; }
+        .result { font-size:clamp(22px, 6vw, 28px); margin:25px 0; font-weight:bold; color:#FFD700; }
+        .emoji { font-size:70px; margin:15px 0; }
+        .form-box { background:white; color:#000; padding:25px; border-radius:20px; width:100%; max-width:360px; text-align:center; box-shadow:0 12px 35px rgba(0,0,0,0.4); margin:20px auto; }
+        .form-box h2 { margin-bottom:18px; color:#8B1AFF; font-size:20px; }
+        input, select { width:100%; padding:12px; margin:10px 0; border:2px solid #ddd; border-radius:12px; font-size:15px; }
+        .submit-btn { background:#25D366; color:white; padding:14px; font-size:18px; border:none; border-radius:50px; cursor:pointer; width:100%; margin-top:15px; font-weight:bold; }
+        .winner-card { display:none; margin:25px auto; max-width:300px; border-radius:16px; overflow:hidden; box-shadow:0 8px 20px rgba(0,0,0,0.4); }
+        .footer { margin-top:20px; font-size:14px; opacity:0.9; }
+        canvas { display:none; }
+        .error { color:#ff4757; font-size:14px; margin-top:5px; }
+    </style>
+</head>
+<body>
+
+<div class="card" id="mainCard">
+    <h1>Hopmos Super Friday Drop</h1>
+    <div class="tagline">51%+ Battery = Auto-Win!</div>
+
+    <div class="battery"><div class="fill" id="fill"></div></div>
+    <div class="percent" id="percent">??%</div>
+    <div class="msg" id="msg">Detecting battery...</div>
+
+    <div class="result" id="result"></div>
+    <div class="emoji" id="emoji"></div>
+
+    <!-- FORM -->
+    <div class="form-box" id="claimFormBox" style="display:none;">
+        <h2>Claim Your Airtime!</h2>
+        <input type="text" id="nameInput" placeholder="Full Name" required>
+        <div>
+            <input type="tel" id="phoneInput" placeholder="Phone (11 digits)" required maxlength="11">
+            <div class="error" id="phoneError"></div>
+        </div>
+        <select id="networkInput" required>
+            <option value="">Select Network</option>
+            <option value="MTN">MTN</option>
+            <option value="AIRTEL">AIRTEL</option>
+            <option value="GLO">GLO</option>
+        </select>
+        <button class="submit-btn" onclick="sendToWhatsApp()">SEND TO WHATSAPP</button>
+    </div>
+
+    <!-- WINNER CARD -->
+    <img id="winnerCardImage" class="winner-card" alt="Your Winner Card">
+
+    <div class="footer">
+        Share → hopmos-redirect.netlify.app
+    </div>
+</div>
+
+<canvas id="winnerCanvas"></canvas>
+
+<script>
+    const prizes = ['₦50', '₦100', '₦200', '₦300', '₦400', '₦500'];
+    let wonPrize = '';
+    let batteryLevel = 0;
+    const YOUR_WHATSAPP = '2348053634544'; // YOUR NUMBER
+
+    // === ANTI-CHEAT ===
+    function getFingerprint() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.textBaseline = 'top';
+        ctx.font = '14px Arial';
+        ctx.fillText('Hopmos', 2, 2);
+        const data = canvas.toDataURL();
+        return btoa(navigator.userAgent + screen.width + data).substring(0, 50);
+    }
+    const fingerprint = getFingerprint();
+    const hasPlayed = localStorage.getItem('hopmos_played_' + fingerprint);
+
+    // Battery
+    if ('getBattery' in navigator) {
+        navigator.getBattery().then(b => {
+            batteryLevel = Math.round(b.level * 100);
+            document.getElementById('percent').textContent = batteryLevel + '%';
+            document.getElementById('fill').style.width = batteryLevel + '%';
+
+            if (batteryLevel >= 51) {
+                if (hasPlayed) {
+                    document.getElementById('msg').innerHTML = `<strong>ALREADY CLAIMED</strong><br>One entry per device!`;
+                    document.getElementById('fill').style.background = '#ff4757';
+                    return;
+                }
+
+                document.getElementById('msg').innerHTML = `<strong>QUALIFIED!</strong><br>Fill details to claim!`;
+                document.body.style.background = 'linear-gradient(135deg, #00C853, #64DD17)';
+
+                wonPrize = prizes[Math.floor(Math.random() * prizes.length)];
+                document.getElementById('result').innerHTML = `<span style="color:#FFD700">You won ${wonPrize} airtime!</span>`;
+                document.getElementById('emoji').textContent = "Winner!";
+
+                setTimeout(() => {
+                    document.getElementById('claimFormBox').style.display = 'block';
+                }, 800);
+
+            } else {
+                document.getElementById('msg').innerHTML = `
+                    <strong>DISQUALIFIED</strong><br>
+                    Only 51%+ battery allowed!<br>
+                    Current: ${batteryLevel}% → Charge up!
+                `;
+                document.getElementById('fill').style.background = '#ff4757';
+            }
+        });
+    }
+
+    // === SEND TO YOUR WHATSAPP + REDIRECT ===
+    function sendToWhatsApp() {
+        const name = document.getElementById('nameInput').value.trim();
+        const phone = document.getElementById('phoneInput').value.trim();
+        const network = document.getElementById('networkInput').value;
+        const error = document.getElementById('phoneError');
+
+        if (!/^\d{11}$/.test(phone)) {
+            error.textContent = 'Phone must be exactly 11 digits!';
+            return;
+        }
+        error.textContent = '';
+
+        if (!name || !network) {
+            alert('Please fill all fields!');
+            return;
+        }
+
+        localStorage.setItem('hopmos_played_' + fingerprint, 'true');
+
+        // Generate card
+        const canvas = document.getElementById('winnerCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 600;
+        canvas.height = 800;
+
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        gradient.addColorStop(0, '#8B1AFF');
+        gradient.addColorStop(1, '#FF5E62');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 48px Poppins';
+        ctx.textAlign = 'center';
+        ctx.fillText('HOPMOS WINNER!', canvas.width/2, 100);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 60px Poppins';
+        ctx.fillText(wonPrize + ' AIRTIME', canvas.width/2, 200);
+
+        ctx.font = '32px Poppins';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText('Name: ' + name, canvas.width/2, 320);
+        ctx.fillText('Phone: ' + phone, canvas.width/2, 380);
+        ctx.fillText('Network: ' + network, canvas.width/2, 440);
+        ctx.fillText('Battery: ' + batteryLevel + '%', canvas.width/2, 500);
+
+        ctx.font = 'italic 28px Poppins';
+        ctx.fillStyle = '#FFD700';
+        ctx.fillText('Super Friday Drop', canvas.width/2, 600);
+        ctx.fillText('Verified Winner', canvas.width/2, 650);
+
+        const img = document.getElementById('winnerCardImage');
+        img.src = canvas.toDataURL('image/jpeg');
+        img.style.display = 'block';
+
+        // === REDIRECT TO YOUR WHATSAPP ===
+        canvas.toBlob(blob => {
+            const file = new File([blob], 'hopmos-winner.jpg', { type: 'image/jpeg' });
+            const filesArray = [file];
+
+            if (navigator.canShare && navigator.canShare({ files: filesArray })) {
+                navigator.share({
+                    files: filesArray,
+                    title: 'Hopmos Winner!',
+                    text: `I won ${wonPrize} in Hopmos Super Friday Drop!`
+                }).then(() => {
+                    setTimeout(() => {
+                        window.location.href = `https://wa.me/${YOUR_WHATSAPP}`;
+                    }, 1000);
+                }).catch(() => {
+                    window.location.href = `https://wa.me/${YOUR_WHATSAPP}`;
+                });
+            } else {
+                // Fallback: Open WhatsApp with text
+                const text = encodeURIComponent(
+                    `*HOPMOS WINNER!*\n\n` +
+                    `Prize: *${wonPrize} Airtime*\n` +
+                    `Name: ${name}\n` +
+                    `Phone: ${phone}\n` +
+                    `Network: ${network}\n` +
+                    `Battery: ${batteryLevel}%\n\n` +
+                    `Screenshot attached!`
+                );
+                window.location.href = `https://wa.me/${YOUR_WHATSAPP}?text=${text}`;
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
