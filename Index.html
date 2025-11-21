@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Hopmos Friday Drops</title>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;font-family:'Segoe UI',sans-serif;color:#fff;background:#000}
+  #app{height:100vh;display:flex;flex-direction:column;padding:20px 15px 110px 15px;justify-content:center;align-items:center;
+       background:linear-gradient(135deg,#0a0033,#1a0059,#2d0077)}
+
+  #score,#timer{position:fixed;top:15px;font-size:18px;font-weight:bold;z-index:10;background:rgba(0,0,0,0.7);padding:8px 18px;border-radius:30px;border:1px solid #00ff00}
+  #score{left:15px}#timer{right:15px}
+
+  #word-container{width:100%;text-align:center;padding:0 20px}
+  #word-display{display:inline-block;font-weight:bold;letter-spacing:6px;font-size:8vw;line-height:1.3}
+  @media(min-width:500px){#word-display{font-size:50px}}
+  @media(max-width:360px){#word-display{font-size:36px}}
+
+  .letter{transition:all .2s}
+  .typed{color:#00ff00 !important;text-shadow:0 0 20px #00ff00}
+  .current{background:rgba(0,255,0,0.3);padding:0 8px;border-radius:8px}
+
+  #feedback{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;font-weight:bold;
+            color:#00ff00;background:rgba(0,0,0,0.8);padding:14px 45px;border-radius:50px;opacity:0;
+            box-shadow:0 0 30px #00ff00;transition:opacity .4s;z-index:99}
+  #feedback.show{opacity:1}
+
+  #input{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);width:90%;max-width:380px;padding:18px;
+         font-size:26px;text-align:center;border:4px solid #00ff00;border-radius:50px;background:rgba(0,0,0,0.6);
+         outline:none;color:#fff}
+
+  .screen{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;
+          justify-content:center;text-align:center;padding:20px;background:rgba(0,0,0,0.97);z-index:100}
+
+  h1{font-size:3.4rem;background:linear-gradient(90deg,#00ff00,#00ff99,#00cc00);-webkit-background-clip:text;
+     -webkit-text-fill-color:transparent;font-weight:900;letter-spacing:2px}
+
+  .prize{font-size:3.2rem;color:#00ff00;margin:20px 0;font-weight:bold;text-shadow:0 0 20px #00ff00}
+
+  button{margin:20px auto;padding:18px 60px;font-size:24px;background:#00ff00;color:#000;border:none;
+         border-radius:50px;cursor:pointer;font-weight:bold;box-shadow:0 8px 20px rgba(0,255,0,0.4)}
+
+  #prize-card{background:linear-gradient(135deg,#1a0033,#000);border:3px solid #00ff00;border-radius:20px;
+              padding:30px 25px;width:90%;max-width:400px;box-shadow:0 0 40px rgba(0,255,0,0.4);
+              text-align:center;margin:20px auto}
+  #prize-logo{font-size:48px;font-weight:900;color:#00ff00;margin-bottom:10px;letter-spacing:3px}
+  #prize-amount{font-size:56px;color:#00ff00;font-weight:900;margin:15px 0;text-shadow:0 0 30px #00ff00}
+  #prize-details{color:#ccc;font-size:18px;line-height:1.6}
+  .line{border-top:2px dashed #00ff00;margin:20px 0;opacity:0.5}
+
+  input,select{width:88%;max-width:360px;margin:12px auto;padding:16px;font-size:20px;border-radius:15px;
+              border:none;text-align:center;background:rgba(255,255,255,0.1);color:#fff}
+  select{background:#333;border:none}
+  #submit-btn{background:#ffd700;color:#000;box-shadow:0 8px 20px rgba(255,215,0,0.5)}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- Start -->
+  <div id="start-screen" class="screen">
+    <h1>HOPMOS FRIDAY DROPS</h1>
+    <p>Short word = ₦15<br>Long word (10+ letters) = ₦20</p>
+    <div class="prize">120 seconds • Real cash</div>
+    <button onclick="startGame()">START DROPS</button>
+  </div>
+
+  <!-- Game -->
+  <div id="game-screen" style="display:none">
+    <div id="score">Score: 0 (₦0)</div>
+    <div id="timer">Time: 120s</div>
+    <div id="word-container"><div id="word-display"></div></div>
+    <div id="feedback">CORRECT!</div>
+    <input type="text" id="input" placeholder="Type here..." autocomplete="off" autocorrect="off" spellcheck="false">
+  </div>
+
+  <!-- Result -->
+  <div id="result-screen" class="screen" style="display:none">
+    <h1>HOPMOS FRIDAY DROPS</h1>
+    <div class="prize">TIME UP!</div>
+    <p>Your final prize:</p>
+    <div id="prize-card">
+      <div id="prize-logo">HOPMOS</div>
+      <div id="prize-amount">₦0</div>
+      <div class="line"></div>
+      <div id="prize-details">Friday Drops Winner<br>Correct Words: <span id="words-count">0</span></div>
+    </div>
+    <button onclick="showClaimForm()">CLAIM YOUR MONEY</button>
+  </div>
+
+  <!-- Claim Form -->
+  <div id="claim-screen" class="screen" style="display:none">
+    <h1>CLAIM YOUR PRIZE</h1>
+    <div id="prize-card">
+      <div id="prize-logo">HOPMOS</div>
+      <div id="prize-amount">₦<span id="capture-amount">0</span></div>
+      <div class="line"></div>
+      <div id="prize-details">
+        Winner Details:<br><br>
+        <input type="text" id="name" placeholder="Full Name" required>
+        <input type="tel" id="phone" placeholder="Phone Number" required>
+        <select id="network" required>
+          <option value="" disabled selected>Network</option>
+          <option>MTN</option><option>Airtel</option><option>Glo</option><option>9mobile</option>
+        </select>
+      </div>
+    </div>
+    <button id="submit-btn" onclick="submitAndSend()">SUBMIT & SEND TO WHATSAPP</button>
+    <p style="margin-top:15px;color:#0f0;font-size:14px">Auto-screenshot will be sent</p>
+  </div>
+
+</div>
+
+<audio id="bgmusic" loop autoplay volume="0.5">
+  <source src="https://cdn.pixabay.com/download/audio/2023/08/03/audio_2c8f8d17e5.mp3?filename=afrobeat-no-copyright-music-162665.mp3" type="audio/mp3">
+</audio>
+
+<script>
+// CLEAN SINGLE WORDS ONLY – HOPMOS first
+const words = [
+  "HOPMOS", "IDORENYIN", "POUNDED", "EGUSI", "PEPPER", "OWAMBE", "ASOEBI", "ANKARA", "AGBADA", "ISIAGU",
+  "ABUJA", "LAGOS", "CALABAR", "ENUGU", "KANO", "IBADAN", "INDOMIE", "AKARA", "MOIMOI", "FUFU",
+  "GARRI", "ZANKU", "SHAKITI", "DEYPLAY", "NOWAHALA", "JAPA", "SAPA", "WEREY", "OSHEY", "GBEDU",
+  "KPK", "ECHOKE", "CRUISE", "BROKOS", "OGAKPATA", "MADAMKOI", "HOWFAR", "WETIN", "SHINE", "VEXMONEY",
+  "PUREWATER", "CHAPMAN", "ZOBODRINK", "KILISHI", "ASUN", "NKWOBI", "ISIEWU", "SUYA", "JOLLOF", "AFANG"
+];
+
+let score = 0, totalPrize = 0, timeLeft = 120, gameActive = false;
+let remainingWords = [];
+
+const wordDisplay = document.getElementById('word-display');
+const input = document.getElementById('input');
+const feedback = document.getElementById('feedback');
+
+function startGame(){
+  document.getElementById('start-screen').style.display='none';
+  document.getElementById('game-screen').style.display='block';
+  document.getElementById('bgmusic').play();
+  score=0; totalPrize=0; timeLeft=120; gameActive=true;
+  remainingWords = [...words];
+  updateScore(); startTimer(); showNextWord(); input.focus();
+}
+
+function startTimer(){
+  const t = setInterval(()=>{
+    timeLeft--;
+    document.getElementById('timer').textContent = `Time: ${timeLeft}s`;
+    if(timeLeft<=0){ clearInterval(t); endGame(); }
+  },1000);
+}
+
+function showNextWord(){
+  if(!gameActive || remainingWords.length===0) return;
+  const word = remainingWords.shift();
+  wordDisplay.innerHTML = word.split('').map(l=>`<span class="letter">${l}</span>`).join('');
+  input.value=''; highlightTyped(0);
+}
+
+function highlightTyped(n){
+  document.querySelectorAll('.letter').forEach((l,i)=>{
+    l.classList.toggle('typed',i<n);
+    l.classList.toggle('current',i===n);
+  });
+}
+
+function updateScore(){
+  document.getElementById('score').textContent = `Score: ${score} (₦${totalPrize})`;
+}
+
+function showFeedback(){
+  feedback.classList.add('show');
+  setTimeout(()=>feedback.classList.remove('show'),800);
+}
+
+function endGame(){
+  gameActive=false; input.disabled=true;
+  document.getElementById('game-screen').style.display='none';
+  document.getElementById('prize-amount').textContent = `₦${totalPrize}`;
+  document.getElementById('capture-amount').textContent = totalPrize;
+  document.getElementById('words-count').textContent = score;
+  document.getElementById('result-screen').style.display='flex';
+}
+
+function showClaimForm(){
+  document.getElementById('result-screen').style.display='none';
+  document.getElementById('claim-screen').style.display='flex';
+}
+
+input.addEventListener('input',()=>{
+  if(!gameActive) return;
+  const typed = input.value.toUpperCase().trim();
+  const current = wordDisplay.textContent;
+  if(current.startsWith(typed)){
+    highlightTyped(typed.length);
+    if(typed===current){
+      score++;
+      totalPrize += current.length >= 10 ? 20 : 15;
+      updateScore(); showFeedback();
+      input.value=''; setTimeout(showNextWord,800);
+    }
+  }else if(typed.length>0){
+    input.style.borderColor='#ff0066';
+    setTimeout(()=>input.style.borderColor='#00ff00',300);
+  }
+});
+
+function submitAndSend(){
+  const name = document.getElementById('name').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const network = document.getElementById('network').value;
+
+  if(!name || !phone || !network){
+    alert("Please fill all fields");
+    return;
+  }
+
+  document.getElementById('submit-btn').textContent = "Sending...";
+
+  html2canvas(document.getElementById('prize-card'), {scale: 2}).then(canvas => {
+    canvas.toBlob(blob => {
+      const file = new File([blob], "Hopmos-Friday-Drops-Winner.png", {type: "image/png"});
+      const text = `HOPMOS FRIDAY DROPS WINNER!\nName: ${name}\nPhone: ${phone}\nNetwork: ${network}\nPrize: ₦${totalPrize}`;
+
+      if(navigator.canShare && navigator.canShare({files: [file]})){
+        navigator.share({files: [file], title: "Hopmos Friday Drops", text: text})
+        .then(()=> document.getElementById('submit-btn').textContent = "SENT!");
+      } else {
+        const url = "https://wa.me/qr/YIYYT7HG2AAJI1?text=" + encodeURIComponent(text + "\n\n(See attached screenshot)");
+        window.open(url, '_blank');
+        document.getElementById('submit-btn').textContent = "OPENED WHATSAPP";
+      }
+    });
+  });
+}
+</script>
+</body>
+</html>
